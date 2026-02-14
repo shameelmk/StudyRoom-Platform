@@ -11,3 +11,8 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Data required to create a new user via the API or initial setup."""
     password: str = Field(min_length=8, max_length=128)
+
+
+class UserUpdate(BaseModel):
+    """Data for updating the current user's profile."""
+    name: str | None = None

@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, DateTime, func, Boolean, text
+from sqlalchemy import Column, String, DateTime, Boolean, func
 from app.core.base import Base
 
 
@@ -13,3 +13,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
+    last_login = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<User id={self.id} email={self.email}>"

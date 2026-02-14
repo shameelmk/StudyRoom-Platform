@@ -1,3 +1,4 @@
+from typing import Annotated
 from app import models
 from app.core.db import SessionLocal
 from fastapi.security import OAuth2PasswordBearer
@@ -16,7 +17,7 @@ def get_db():
 
 
 # OAuth2 scheme for retrieving token from the authorization header
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
 
 def get_current_user(token: str = Security(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
@@ -34,3 +35,5 @@ def get_current_user(token: str = Security(oauth2_scheme), db: Session = Depends
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=f"User not found")
     return user
+
+CurrentUser = Annotated[models.User, Depends(get_current_user)]

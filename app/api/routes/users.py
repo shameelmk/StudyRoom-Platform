@@ -1,33 +1,25 @@
 from fastapi import APIRouter, Depends, status
 from app import schemas, models
-from app.api.deps import get_db, get_current_user
-from app.core.security import get_password_hash
-from sqlalchemy.exc import IntegrityError
+from app.api.deps import get_db, CurrentUser
 from fastapi import HTTPException, status
 
 router = APIRouter(tags=["users"])
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
-def create_user(user_in: schemas.user.UserCreate, db=Depends(get_db)) -> schemas.user.UserBase:
-    new_user = models.User(
-        hashed_password=get_password_hash(user_in.password),
-        **user_in.dict(exclude={"password"}),
-    )
-    db.add(new_user)
-
-    try:
-        db.commit()
-        db.refresh(new_user)
-        return new_user
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists")
-
 
 @router.get("/me")
-def get_current_user(current_user: models.User = Depends(get_current_user)) -> schemas.user.UserBase:
+def get_current_user(current_user: CurrentUser) -> schemas.user.UserBase:
+    return current_user
+
+
+@router.put("/me")
+def update_current_user(user_in: schemas.user.UserUpdate, current_user: CurrentUser, db=Depends(get_db)) -> schemas.user.UserBase:
+    if user_in.name is not None:
+        current_user.name = user_in.name
+
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
     return current_user
 
 
