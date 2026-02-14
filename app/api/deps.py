@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 
 # Dependency to get DB session (synchronous)
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -17,7 +19,8 @@ def get_db():
 
 
 # OAuth2 scheme for retrieving token from the authorization header
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
 
 def get_current_user(token: str = Security(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
@@ -36,4 +39,12 @@ def get_current_user(token: str = Security(oauth2_scheme), db: Session = Depends
             status_code=status.HTTP_401_UNAUTHORIZED, detail=f"User not found")
     return user
 
+
 CurrentUser = Annotated[models.User, Depends(get_current_user)]
+
+
+def get_current_active_superuser(current_user: CurrentUser) -> models.User:
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="The user doesn't have enough privileges")
+    return current_user
