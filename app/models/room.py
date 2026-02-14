@@ -17,6 +17,7 @@ class StudyRoom(Base):
 
     creator = relationship("User", back_populates="created_study_rooms")
     members = relationship("StudyRoomMember", back_populates="study_room", cascade="all, delete-orphan")
+    materials = relationship("StudyMaterial", back_populates="room", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<StudyRoom id={self.id} name={self.name}>"

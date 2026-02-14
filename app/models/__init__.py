@@ -2,6 +2,7 @@
 for alembic to recognize them when generating migrations."""
 
 from .user import User
-from .study_room import StudyRoom, StudyRoomMember
+from .room import StudyRoom, StudyRoomMember
+from .study_material import StudyMaterial
 
-__all__ = ["User", "StudyRoom", "StudyRoomMember"]
+__all__ = ["User", "StudyRoom", "StudyRoomMember", "StudyMaterial"]

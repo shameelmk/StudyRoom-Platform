@@ -29,7 +29,7 @@ class Settings(BaseSettings):
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}"
             f"/{self.POSTGRES_DB}"
         )
-    
+
     @property
     def SYNC_DATABASE_URL(self) -> str:
         return (
@@ -38,11 +38,13 @@ class Settings(BaseSettings):
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}"
             f"/{self.POSTGRES_DB}"
         )
-    
+
     FIRST_SUPERUSER_EMAIL: str
     FIRST_SUPERUSER_PASSWORD: str
     SECRET_KEY: str = "CHANGE_ME_PLEASE"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+    MATERIAL_UPLOAD_DIR: str = "uploads/study_materials"
 
 
 settings = Settings()

@@ -20,6 +20,8 @@ class User(Base):
         "StudyRoom", back_populates="creator", cascade="all, delete-orphan")
     study_rooms_memberships = relationship(
         "StudyRoomMember", back_populates="user", cascade="all, delete-orphan")
+    uploaded_materials = relationship(
+        "StudyMaterial", back_populates="uploader", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User id={self.id} email={self.email}>"
