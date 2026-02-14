@@ -16,7 +16,7 @@ class StudyRoom(Base):
     created_by = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     creator = relationship("User", back_populates="created_study_rooms")
-    members = relationship("StudyRoomMember", back_populates="study_room")
+    members = relationship("StudyRoomMember", back_populates="study_room", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<StudyRoom id={self.id} name={self.name}>"

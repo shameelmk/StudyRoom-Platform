@@ -17,9 +17,9 @@ class User(Base):
     last_login = Column(DateTime(timezone=True), server_default=func.now())
 
     created_study_rooms = relationship(
-        "StudyRoom", back_populates="creator")
+        "StudyRoom", back_populates="creator", cascade="all, delete-orphan")
     study_rooms_memberships = relationship(
-        "StudyRoomMember", back_populates="user")
+        "StudyRoomMember", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User id={self.id} email={self.email}>"

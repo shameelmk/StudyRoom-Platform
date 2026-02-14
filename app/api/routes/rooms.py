@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Response, status
+from sqlalchemy import func
 from app.api.deps import CurrentUser, SessionDep
 from app.schemas import room as room_schemas
 from app.models import study_room
@@ -55,5 +56,65 @@ async def delete_study_room(room_id: str, current_user: CurrentUser, session: Se
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Only the owner can delete this study room")
     session.delete(room)
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{room_id}/join", summary="Join a study room")
+async def join_study_room(room_id: str, current_user: CurrentUser, session: SessionDep):
+    """Join a study room by its ID. The user will be added to the members list of the room."""
+    room = session.query(study_room.StudyRoom).filter(
+        study_room.StudyRoom.id == room_id).first()
+
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found")
+
+    member_count = (
+        session.query(func.count(study_room.StudyRoomMember.id))
+        .filter(study_room.StudyRoomMember.study_room_id == room_id)
+        .scalar()
+    )
+
+    if member_count >= room.max_members:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Study room is full")
+
+    existing_member = (
+        session.query(study_room.StudyRoomMember)
+        .filter_by(study_room_id=room_id, user_id=current_user.id)
+        .first()
+    )
+    if existing_member:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="You are already a member of this study room")
+
+    new_member = study_room.StudyRoomMember(user_id=current_user.id)
+    room.members.append(new_member)
+    session.add(new_member)
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{room_id}/leave", summary="Leave a study room")
+async def leave_study_room(room_id: str, current_user: CurrentUser, session: SessionDep):
+    """Leave a study room by its ID. The user will be removed from the members list of the room."""
+    room = session.query(study_room.StudyRoom).filter(
+        study_room.StudyRoom.id == room_id).first()
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found")
+    member = (
+        session.query(study_room.StudyRoomMember)
+        .filter_by(study_room_id=room_id, user_id=current_user.id)
+        .first()
+    )
+    if not member:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="You are not a member of this study room")
+    if room.created_by == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Owner cannot leave their own study room. Consider deleting the room instead.")
+    session.delete(member)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
