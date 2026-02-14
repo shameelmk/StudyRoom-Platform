@@ -1,7 +1,6 @@
 import os
-import shutil
 import uuid
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, HTTPException, UploadFile, File, status
 from sqlalchemy import exists
 from app.api.deps import CurrentUser, SessionDep
 from app.schemas.study_material import MaterialResponse
@@ -40,19 +39,38 @@ async def upload_study_material(current_user: CurrentUser, session: SessionDep, 
 
     file_id = str(uuid.uuid4())
     file_path = os.path.join(room_dir, f"{file_id}.pdf")
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
 
-    material = study_material.StudyMaterial(
-        room_id=room_id,
-        uploaded_by=current_user.id,
-        file_name=file.filename,
-        file_url=file_path
-    )
-    session.add(material)
-    session.commit()
-    session.refresh(material)
-    return material
+    file_size = 0
+
+    try:
+        with open(file_path, "wb") as buffer:
+            # Checking the file size while reading it in chunks to avoid loading large files into memory
+            while chunk := await file.read(1024 * 1024):
+                file_size += len(chunk)
+
+                if file_size > settings.MAX_FILE_SIZE:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="File size exceeds 10MB limit"
+                    )
+                buffer.write(chunk)
+
+        material = study_material.StudyMaterial(
+            room_id=room_id,
+            uploaded_by=current_user.id,
+            file_name=file.filename,
+            file_url=file_path
+        )
+        session.add(material)
+        session.commit()
+        session.refresh(material)
+        return material
+    except Exception:
+        # Cleanup on failure
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        session.rollback()
+        raise
 
 
 @router.get("/{room_id}/materials", summary="List study materials")
@@ -79,4 +97,4 @@ async def list_study_materials(current_user: CurrentUser, session: SessionDep, r
         study_material.StudyMaterial.room_id == room_id).all()
     return materials
 
-#TODO - Optional Add endpoints for downloading and deleting materials (only by uploader or room owner)
+# TODO - Optional Add endpoints for downloading and deleting materials (only by uploader or room owner)

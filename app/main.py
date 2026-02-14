@@ -8,13 +8,8 @@ app = FastAPI(
     debug=settings.DEBUG,
     api_version=settings.APP_VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    docs_url=f"{settings.API_V1_STR}/docs"
+    docs_url=f"{settings.API_V1_STR}/docs",
 )
-
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
 
 
 app.include_router(

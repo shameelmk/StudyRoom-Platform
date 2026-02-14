@@ -41,10 +41,11 @@ class Settings(BaseSettings):
 
     FIRST_SUPERUSER_EMAIL: str
     FIRST_SUPERUSER_PASSWORD: str
-    SECRET_KEY: str = "CHANGE_ME_PLEASE"
+    SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     MATERIAL_UPLOAD_DIR: str = "uploads/study_materials"
+    MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
 
 
 settings = Settings()
