@@ -17,6 +17,7 @@ def get_db():
     finally:
         db.close()
 
+SessionDep = Annotated[Session, Depends(get_db)]
 
 # OAuth2 scheme for retrieving token from the authorization header
 oauth2_scheme = OAuth2PasswordBearer(

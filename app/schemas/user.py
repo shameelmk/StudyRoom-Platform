@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from uuid import UUID
+from datetime import datetime
 
 
 class UserBase(BaseModel):
@@ -16,3 +18,11 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """Data for updating the current user's profile."""
     name: str | None = None
+
+
+class UserOut(UserBase):
+    """Public user fields returned in responses."""
+
+    id: UUID
+
+    model_config = ConfigDict(from_attributes=True)

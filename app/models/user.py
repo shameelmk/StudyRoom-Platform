@@ -1,5 +1,6 @@
 import uuid
 from sqlalchemy import Column, String, DateTime, Boolean, func
+from sqlalchemy.orm import relationship
 from app.core.base import Base
 
 
@@ -14,6 +15,11 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
     last_login = Column(DateTime(timezone=True), server_default=func.now())
+
+    created_study_rooms = relationship(
+        "StudyRoom", back_populates="creator")
+    study_rooms_memberships = relationship(
+        "StudyRoomMember", back_populates="user")
 
     def __repr__(self):
         return f"<User id={self.id} email={self.email}>"
