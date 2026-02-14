@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, DateTime, func
+from sqlalchemy import Column, String, DateTime, func, Boolean, text
 from app.core.base import Base
 
 
@@ -11,5 +11,5 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    is_active = Column(String, default="true")
-    is_superuser = Column(String, default="false")
+    is_active = Column(Boolean, default=True)
+    is_superuser = Column(Boolean, default=False)

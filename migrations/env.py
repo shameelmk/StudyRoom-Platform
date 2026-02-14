@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from app.core.db import Base
+from app.core.base import Base
 from app.core.config import settings
 from app import models
 
@@ -22,7 +22,11 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Alembic runs synchronously and expects a sync DB driver. The application
+# uses the async SQLAlchemy engine (`postgresql+asyncpg://`) at runtime, so
+# we provide a separate sync URL here for Alembic to use (e.g. `postgresql://`).
+# This avoids needing to run Alembic with an async engine or special setup.
+config.set_main_option("sqlalchemy.url", settings.SYNC_DATABASE_URL)
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
