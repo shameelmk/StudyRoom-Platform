@@ -53,8 +53,14 @@ async def get_study_room(
     return room
 
 
-@router.get("/", summary="List all study rooms", response_model=LimitOffsetPage[room_schemas.StudyRoomBase])
-async def list_study_rooms(session: SessionDep, search: str | None = Query(None)) -> LimitOffsetPage[room_schemas.StudyRoomBase]:
+@router.get(
+    "/",
+    summary="List all study rooms",
+    response_model=LimitOffsetPage[room_schemas.StudyRoomBase],
+)
+async def list_study_rooms(
+    session: SessionDep, search: str | None = Query(None)
+) -> LimitOffsetPage[room_schemas.StudyRoomBase]:
     """List all available study rooms."""
     query = session.query(room_models.StudyRoom)
     if search:
@@ -97,9 +103,12 @@ async def join_study_room(
     room_id: UUID, current_user: CurrentUser, session: SessionDep
 ):
     """Join a study room by its ID. The user will be added to the members list of the room."""
+
+    # with for update to prevent race conditions when multiple users try to join the same room at the same time
     room = (
         session.query(room_models.StudyRoom)
         .filter(room_models.StudyRoom.id == room_id)
+        .with_for_update()
         .first()
     )
 
