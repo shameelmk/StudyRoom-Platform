@@ -7,6 +7,7 @@ from sqlalchemy import func, or_
 from app.api.deps import CurrentUser, SessionDep
 from app.schemas import room as room_schemas, study_material as study_material_schemas
 from app.models import room as room_models, study_material as study_material_models
+from typing import Literal
 from uuid import UUID
 
 router = APIRouter(tags=["study_rooms"])
@@ -59,10 +60,22 @@ async def get_study_room(
     response_model=LimitOffsetPage[room_schemas.StudyRoomBase],
 )
 async def list_study_rooms(
-    session: SessionDep, search: str | None = Query(None)
+    session: SessionDep,
+    current_user: CurrentUser,
+    search: str | None = Query(None, min_length=1),
+    filter_by: Literal["all", "created", "joined"] = Query("all"),
 ) -> LimitOffsetPage[room_schemas.StudyRoomBase]:
     """List all available study rooms."""
     query = session.query(room_models.StudyRoom)
+
+    if filter_by == "created":
+        query = query.filter(
+            room_models.StudyRoom.created_by == current_user.id)
+    elif filter_by == "joined":
+        query = query.join(room_models.StudyRoomMember).filter(
+            room_models.StudyRoomMember.user_id == current_user.id
+        )
+
     if search:
         query = query.filter(
             or_(
