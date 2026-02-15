@@ -13,3 +13,15 @@ class MaterialResponse(BaseModel):
     uploader: user_schemas.UserOut
 
     model_config = ConfigDict(from_attributes=True)
+
+class StudyMaterialReportResponse(BaseModel):
+    id: UUID
+    material_id: UUID
+    reporter: user_schemas.UserOut
+    comment: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class StudyMaterialReportCreate(BaseModel):
+    comment: str

@@ -1,19 +1,19 @@
 import uuid
 from app.core.base import Base
-from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, UniqueConstraint, func
+from sqlalchemy import Column, String, DateTime, Integer, ForeignKey, UniqueConstraint, func, UUID
 from sqlalchemy.orm import relationship
 
 
 class StudyRoom(Base):
     __tablename__ = "study_rooms"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     max_members = Column(Integer, nullable=False, default=10)
-    created_by = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     creator = relationship("User", back_populates="created_study_rooms")
     members = relationship("StudyRoomMember", back_populates="study_room", cascade="all, delete-orphan")
@@ -30,10 +30,10 @@ class StudyRoomMember(Base):
                          name="uix_study_room_user"),
     )
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    study_room_id = Column(String, ForeignKey(
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    study_room_id = Column(UUID(as_uuid=True), ForeignKey(
         "study_rooms.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(String, ForeignKey(
+    user_id = Column(UUID(as_uuid=True), ForeignKey(
         "users.id", ondelete="CASCADE"), nullable=False)
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
 

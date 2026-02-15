@@ -3,6 +3,7 @@ from sqlalchemy import func
 from app.api.deps import CurrentUser, SessionDep
 from app.schemas import room as room_schemas
 from app.models import room as room_models
+from uuid import UUID
 
 router = APIRouter(tags=["study_rooms"])
 
@@ -26,7 +27,7 @@ async def create_study_room(room_data: room_schemas.StudyRoomCreate, current_use
 
 
 @router.get("/{room_id}", summary="Get details of a study room")
-async def get_study_room(room_id: str, session: SessionDep) -> room_schemas.StudyRoomBase:
+async def get_study_room(room_id: UUID, session: SessionDep) -> room_schemas.StudyRoomBase:
     """Retrieve details of a study room by its ID."""
     room = session.query(room_models.StudyRoom).filter(
         room_models.StudyRoom.id == room_id).first()
@@ -45,7 +46,7 @@ async def list_study_rooms(session: SessionDep) -> list[room_schemas.StudyRoomBa
 
 
 @router.delete("/{room_id}", summary="Delete a study room")
-async def delete_study_room(room_id: str, current_user: CurrentUser, session: SessionDep):
+async def delete_study_room(room_id: UUID, current_user: CurrentUser, session: SessionDep):
     """Delete a study room by its ID. Only the owner of the room can delete it."""
     room = session.query(room_models.StudyRoom).filter(
         room_models.StudyRoom.id == room_id).first()
@@ -61,7 +62,7 @@ async def delete_study_room(room_id: str, current_user: CurrentUser, session: Se
 
 
 @router.post("/{room_id}/join", summary="Join a study room")
-async def join_study_room(room_id: str, current_user: CurrentUser, session: SessionDep):
+async def join_study_room(room_id: UUID, current_user: CurrentUser, session: SessionDep):
     """Join a study room by its ID. The user will be added to the members list of the room."""
     room = session.query(room_models.StudyRoom).filter(
         room_models.StudyRoom.id == room_id).first()
@@ -90,7 +91,7 @@ async def join_study_room(room_id: str, current_user: CurrentUser, session: Sess
             status_code=status.HTTP_400_BAD_REQUEST, detail="You are already a member of this study room")
 
     new_member = room_models.StudyRoomMember(user_id=current_user.id)
-    
+
     room.members.append(new_member)
     session.add(new_member)
     session.commit()
@@ -98,7 +99,7 @@ async def join_study_room(room_id: str, current_user: CurrentUser, session: Sess
 
 
 @router.post("/{room_id}/leave", summary="Leave a study room")
-async def leave_study_room(room_id: str, current_user: CurrentUser, session: SessionDep):
+async def leave_study_room(room_id: UUID, current_user: CurrentUser, session: SessionDep):
     """Leave a study room by its ID. The user will be removed from the members list of the room."""
     room = session.query(room_models.StudyRoom).filter(
         room_models.StudyRoom.id == room_id).first()

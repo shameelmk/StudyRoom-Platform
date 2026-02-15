@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, UploadFile, File, status
 from sqlalchemy import exists
 from app.api.deps import CurrentUser, SessionDep
-from app.schemas.study_material import MaterialResponse
+from app.schemas.study_material import MaterialResponse, StudyMaterialReportCreate, StudyMaterialReportResponse, StudyMaterialReportResponse
 from app.models import room as study_room, study_material
 from app.core.config import settings
 
@@ -98,3 +98,58 @@ async def list_study_materials(current_user: CurrentUser, session: SessionDep, r
     return materials
 
 # TODO - Optional Add endpoints for downloading and deleting materials (only by uploader or room owner)
+
+
+@router.post("/materials/{material_id}/reports", summary="Report a study material", response_model=StudyMaterialReportResponse, status_code=status.HTTP_201_CREATED)
+async def report_study_material(current_user: CurrentUser, session: SessionDep, report: StudyMaterialReportCreate, material_id: uuid.UUID) -> StudyMaterialReportResponse:
+    """Report a study material, Only members of the study room can report materials in a room."""
+
+    material = session.query(study_material.StudyMaterial).filter(
+        study_material.StudyMaterial.id == material_id).first()
+    if not material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Study material not found")
+
+    is_member = session.query(
+        exists().where(
+            study_room.StudyRoomMember.study_room_id == material.room_id,
+            study_room.StudyRoomMember.user_id == current_user.id
+        )
+    ).scalar()
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="You must be a member of the study room to report materials")
+
+    report = study_material.StudyMaterialReport(
+        material_id=report.material_id,
+        reported_by=current_user.id,
+        comment=report.comment
+    )
+    session.add(report)
+    session.commit()
+    return report
+
+
+@router.get("/materials/{material_id}/reports", summary="List reports for a study material", response_model=list[StudyMaterialReportResponse])
+async def list_material_reports(current_user: CurrentUser, session: SessionDep, material_id: str) -> list[StudyMaterialReportResponse]:
+    """List all reports for a specific study material, Only room owners can view reports for materials in their rooms."""
+
+    material = session.query(study_material.StudyMaterial).filter(
+        study_material.StudyMaterial.id == material_id).first()
+    if not material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Study material not found")
+
+    is_room_owner = session.query(
+        exists().where(
+            study_room.StudyRoom.id == material.room_id,
+            study_room.StudyRoom.created_by == current_user.id
+        )
+    ).scalar()
+    if not is_room_owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only room owners can view reports for materials in their rooms")
+
+    reports = session.query(study_material.StudyMaterialReport).filter(
+        study_material.StudyMaterialReport.material_id == material_id).all()
+    return reports
