@@ -1,5 +1,9 @@
+from fastapi.params import Query
+from sqlalchemy.orm import joinedload
 from fastapi import APIRouter, HTTPException, Response, status
-from sqlalchemy import func
+from fastapi_pagination import LimitOffsetPage
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy import func, or_
 from app.api.deps import CurrentUser, SessionDep
 from app.schemas import room as room_schemas, study_material as study_material_schemas
 from app.models import room as room_models, study_material as study_material_models
@@ -49,12 +53,19 @@ async def get_study_room(
     return room
 
 
-@router.get("/", summary="List all study rooms")
-async def list_study_rooms(session: SessionDep) -> list[room_schemas.StudyRoomBase]:
+@router.get("/", summary="List all study rooms", response_model=LimitOffsetPage[room_schemas.StudyRoomBase])
+async def list_study_rooms(session: SessionDep, search: str | None = Query(None)) -> LimitOffsetPage[room_schemas.StudyRoomBase]:
     """List all available study rooms."""
-    # TODO: Add pagination and search functionality.
-    rooms = session.query(room_models.StudyRoom).all()
-    return rooms
+    query = session.query(room_models.StudyRoom)
+    if search:
+        query = query.filter(
+            or_(
+                room_models.StudyRoom.name.ilike(f"%{search}%"),
+                room_models.StudyRoom.description.ilike(f"%{search}%"),
+            )
+        )
+    query = query.order_by(room_models.StudyRoom.created_at.desc())
+    return paginate(session, query)
 
 
 @router.delete("/{room_id}", summary="Delete a study room")
@@ -164,14 +175,12 @@ async def leave_study_room(
 @router.get(
     "/{room_id}/reports",
     summary="List reports for a study room",
-    response_model=list[study_material_schemas.StudyMaterialReportResponse],
+    response_model=LimitOffsetPage[study_material_schemas.StudyMaterialReportResponse],
 )
 async def list_room_reports(
     current_user: CurrentUser, session: SessionDep, room_id: UUID
-) -> list[study_material_schemas.StudyMaterialReportResponse]:
+) -> LimitOffsetPage[study_material_schemas.StudyMaterialReportResponse]:
     """List all reports for a specific study room, Only room owners can view reports for their rooms."""
-
-    # TODO - Add pagination for reports
 
     room = (
         session.query(room_models.StudyRoom)
@@ -189,6 +198,14 @@ async def list_room_reports(
             detail="Only the owner can view reports for this study room",
         )
 
-    reports = session.query(study_material_models.StudyMaterialReport).join(
-        study_material_models.StudyMaterialReport.material).filter(study_material_models.StudyMaterial.room_id == room_id).all()
-    return reports
+    query = (
+        session.query(study_material_models.StudyMaterialReport)
+        .options(
+            joinedload(study_material_models.StudyMaterialReport.reporter),
+            joinedload(study_material_models.StudyMaterialReport.material),
+        )
+        .join(study_material_models.StudyMaterialReport.material)
+        .filter(study_material_models.StudyMaterial.room_id == room_id)
+        .order_by(study_material_models.StudyMaterialReport.created_at.desc())
+    )
+    return paginate(session, query)

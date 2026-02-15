@@ -1,5 +1,7 @@
 import os
 import uuid
+from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination import LimitOffsetPage
 from fastapi import APIRouter, HTTPException, UploadFile, File, status
 from sqlalchemy import exists
 from sqlalchemy.orm import joinedload
@@ -74,10 +76,10 @@ async def upload_study_material(current_user: CurrentUser, session: SessionDep, 
         raise
 
 
-@router.get("/{room_id}/materials", summary="List study materials")
-async def list_study_materials(current_user: CurrentUser, session: SessionDep, room_id: uuid.UUID) -> list[MaterialResponse]:
+@router.get("/{room_id}/materials", summary="List study materials", response_model=LimitOffsetPage[MaterialResponse])
+async def list_study_materials(current_user: CurrentUser, session: SessionDep, room_id: uuid.UUID) -> LimitOffsetPage[MaterialResponse]:
     """List all study materials for a specific study room."""
-    # TODO: Add pagination.
+
     room = session.query(study_room.StudyRoom).filter(
         study_room.StudyRoom.id == room_id).first()
     if not room:
@@ -94,9 +96,13 @@ async def list_study_materials(current_user: CurrentUser, session: SessionDep, r
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="You must be a member of the study room to view materials")
 
-    materials = session.query(study_material.StudyMaterial).filter(
-        study_material.StudyMaterial.room_id == room_id).all()
-    return materials
+    query = (
+        session.query(study_material.StudyMaterial)
+        .options(joinedload(study_material.StudyMaterial.uploader))
+        .filter(study_material.StudyMaterial.room_id == room_id)
+        .order_by(study_material.StudyMaterial.created_at.desc())
+    )
+    return paginate(session, query)
 
 # TODO - Optional Add endpoints for downloading and deleting materials (only by uploader or room owner)
 
@@ -131,11 +137,9 @@ async def report_study_material(current_user: CurrentUser, session: SessionDep, 
     return report
 
 
-@router.get("/materials/{material_id}/reports", summary="List reports for a study material", response_model=list[StudyMaterialReportResponse])
-async def list_material_reports(current_user: CurrentUser, session: SessionDep, material_id: uuid.UUID) -> list[StudyMaterialReportResponse]:
+@router.get("/materials/{material_id}/reports", summary="List reports for a study material", response_model=LimitOffsetPage[StudyMaterialReportResponse])
+async def list_material_reports(current_user: CurrentUser, session: SessionDep, material_id: uuid.UUID) -> LimitOffsetPage[StudyMaterialReportResponse]:
     """List all reports for a specific study material, Only room owners can view reports for materials in their rooms."""
-
-    # TODO - Add pagination for reports
 
     material = session.query(study_material.StudyMaterial).filter(
         study_material.StudyMaterial.id == material_id).first()
@@ -153,10 +157,10 @@ async def list_material_reports(current_user: CurrentUser, session: SessionDep, 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Only room owners can view reports for materials in their rooms")
 
-    reports = (
+    query = (
         session.query(study_material.StudyMaterialReport)
         .options(joinedload(study_material.StudyMaterialReport.reporter))
         .filter(study_material.StudyMaterialReport.material_id == material_id)
-        .all()
+        .order_by(study_material.StudyMaterialReport.created_at.desc())
     )
-    return reports
+    return paginate(session, query)

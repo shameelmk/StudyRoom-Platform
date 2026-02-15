@@ -17,4 +17,5 @@ dependencies = [
     "psycopg2>=2.9.11",
     "pyjwt>=2.11.0",
     "python-multipart>=0.0.22",
+    "fastapi-pagination>=0.15.10",
 ]

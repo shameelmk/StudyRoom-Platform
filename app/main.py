@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from app.core.config import settings
 from app.api.main import api_router
+from fastapi_pagination import add_pagination
+
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -16,3 +18,5 @@ app.include_router(
     prefix=settings.API_V1_STR,
     router=api_router
 )
+
+add_pagination(app)

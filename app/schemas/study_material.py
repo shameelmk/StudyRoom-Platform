@@ -14,14 +14,24 @@ class MaterialResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class MaterialOut(BaseModel):
+    id: UUID
+    file_name: str
+    uploader: user_schemas.UserOut
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class StudyMaterialReportResponse(BaseModel):
     id: UUID
-    material_id: UUID
+    material: MaterialOut
     reporter: user_schemas.UserOut
     comment: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class StudyMaterialReportCreate(BaseModel):
     comment: str
