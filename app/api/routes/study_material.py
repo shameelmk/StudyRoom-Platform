@@ -1,4 +1,5 @@
 import os
+import asyncio
 import uuid
 import aiofiles
 from fastapi_pagination.ext.sqlalchemy import paginate
@@ -55,7 +56,7 @@ async def upload_study_material(
         )
 
     room_dir = os.path.join(settings.MATERIAL_UPLOAD_DIR, str(room_id))
-    os.makedirs(room_dir, exist_ok=True)
+    await asyncio.to_thread(os.makedirs, room_dir, exist_ok=True)
 
     file_id = str(uuid.uuid4())
     file_path = os.path.join(room_dir, f"{file_id}.pdf")
@@ -87,8 +88,8 @@ async def upload_study_material(
         return material
     except Exception:
         # Cleanup on failure
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        if await asyncio.to_thread(os.path.exists, file_path):
+            await asyncio.to_thread(os.remove, file_path)
         session.rollback()
         raise
 
