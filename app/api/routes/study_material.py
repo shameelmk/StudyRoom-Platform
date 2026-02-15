@@ -174,6 +174,12 @@ async def report_study_material(
             detail="You must be a member of the study room to report materials",
         )
 
+    if material.uploaded_by == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot report your own material",
+        )
+
     report = study_material.StudyMaterialReport(
         material_id=material_id, reported_by=current_user.id, comment=report.comment
     )
