@@ -19,4 +19,5 @@ dependencies = [
     "python-multipart>=0.0.22",
     "fastapi-pagination>=0.15.10",
     "aiofiles>=25.1.0",
+    "gunicorn>=25.1.0",
 ]
