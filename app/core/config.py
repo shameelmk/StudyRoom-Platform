@@ -22,16 +22,14 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
 
     @property
-    def DATABASE_URL(self) -> str:
-        return (
-            f"postgresql+asyncpg://"
-            f"{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}"
-            f"/{self.POSTGRES_DB}"
-        )
-
-    @property
     def SYNC_DATABASE_URL(self) -> str:
+        if self.ENVIRONMENT in ["production", "staging"]:
+            import os
+
+            url = os.getenv("DATABASE_URL")
+            if url:
+                return url
+
         return (
             f"postgresql://"
             f"{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
