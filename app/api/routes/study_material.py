@@ -2,6 +2,7 @@ import os
 import uuid
 from fastapi import APIRouter, HTTPException, UploadFile, File, status
 from sqlalchemy import exists
+from sqlalchemy.orm import joinedload
 from app.api.deps import CurrentUser, SessionDep
 from app.schemas.study_material import MaterialResponse, StudyMaterialReportCreate, StudyMaterialReportResponse, StudyMaterialReportResponse
 from app.models import room as study_room, study_material
@@ -11,7 +12,7 @@ router = APIRouter(tags=["Study Materials"])
 
 
 @router.post("/{room_id}/materials", summary="Upload study material")
-async def upload_study_material(current_user: CurrentUser, session: SessionDep, room_id: str, file: UploadFile = File(...)) -> MaterialResponse:
+async def upload_study_material(current_user: CurrentUser, session: SessionDep, room_id: uuid.UUID, file: UploadFile = File(...)) -> MaterialResponse:
     """Upload a new study material to a specific study room."""
 
     room = session.query(study_room.StudyRoom).filter(
@@ -74,7 +75,7 @@ async def upload_study_material(current_user: CurrentUser, session: SessionDep, 
 
 
 @router.get("/{room_id}/materials", summary="List study materials")
-async def list_study_materials(current_user: CurrentUser, session: SessionDep, room_id: str) -> list[MaterialResponse]:
+async def list_study_materials(current_user: CurrentUser, session: SessionDep, room_id: uuid.UUID) -> list[MaterialResponse]:
     """List all study materials for a specific study room."""
     # TODO: Add pagination.
     room = session.query(study_room.StudyRoom).filter(
@@ -121,7 +122,7 @@ async def report_study_material(current_user: CurrentUser, session: SessionDep, 
             status_code=status.HTTP_403_FORBIDDEN, detail="You must be a member of the study room to report materials")
 
     report = study_material.StudyMaterialReport(
-        material_id=report.material_id,
+        material_id=material_id,
         reported_by=current_user.id,
         comment=report.comment
     )
@@ -131,8 +132,10 @@ async def report_study_material(current_user: CurrentUser, session: SessionDep, 
 
 
 @router.get("/materials/{material_id}/reports", summary="List reports for a study material", response_model=list[StudyMaterialReportResponse])
-async def list_material_reports(current_user: CurrentUser, session: SessionDep, material_id: str) -> list[StudyMaterialReportResponse]:
+async def list_material_reports(current_user: CurrentUser, session: SessionDep, material_id: uuid.UUID) -> list[StudyMaterialReportResponse]:
     """List all reports for a specific study material, Only room owners can view reports for materials in their rooms."""
+
+    # TODO - Add pagination for reports
 
     material = session.query(study_material.StudyMaterial).filter(
         study_material.StudyMaterial.id == material_id).first()
@@ -150,6 +153,10 @@ async def list_material_reports(current_user: CurrentUser, session: SessionDep, 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Only room owners can view reports for materials in their rooms")
 
-    reports = session.query(study_material.StudyMaterialReport).filter(
-        study_material.StudyMaterialReport.material_id == material_id).all()
+    reports = (
+        session.query(study_material.StudyMaterialReport)
+        .options(joinedload(study_material.StudyMaterialReport.reporter))
+        .filter(study_material.StudyMaterialReport.material_id == material_id)
+        .all()
+    )
     return reports

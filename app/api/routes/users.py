@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status, HTTPException, status
 from app.schemas import user as user_schema
 from app.models import user as user_model
 from app.api.deps import SessionDep, CurrentUser
-from fastapi import HTTPException, status
-
+from uuid import UUID
 router = APIRouter(tags=["users"])
 
 
@@ -24,7 +23,7 @@ def update_current_user(user_in: user_schema.UserUpdate, current_user: CurrentUs
 
 
 @router.get("/{user_id}", response_model=user_schema.UserOut)
-def get_user(user_id: str, session: SessionDep) -> user_schema.UserOut:
+def get_user(user_id: UUID, session: SessionDep) -> user_schema.UserOut:
     user_obj = session.query(user_model.User).filter(
         user_model.User.id == user_id).first()
     if not user_obj:

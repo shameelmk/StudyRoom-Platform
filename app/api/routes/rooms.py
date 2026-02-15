@@ -1,15 +1,21 @@
 from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import func
 from app.api.deps import CurrentUser, SessionDep
-from app.schemas import room as room_schemas
-from app.models import room as room_models
+from app.schemas import room as room_schemas, study_material as study_material_schemas
+from app.models import room as room_models, study_material as study_material_models
 from uuid import UUID
 
 router = APIRouter(tags=["study_rooms"])
 
 
-@router.post("/", summary="Create a new study room", status_code=status.HTTP_201_CREATED)
-async def create_study_room(room_data: room_schemas.StudyRoomCreate, current_user: CurrentUser, session: SessionDep) -> room_schemas.StudyRoomBase:
+@router.post(
+    "/", summary="Create a new study room", status_code=status.HTTP_201_CREATED
+)
+async def create_study_room(
+    room_data: room_schemas.StudyRoomCreate,
+    current_user: CurrentUser,
+    session: SessionDep,
+) -> room_schemas.StudyRoomBase:
     """Create a new study room with the given details. The current user will be set as the owner of the room."""
     room = room_models.StudyRoom(
         name=room_data.name,
@@ -27,13 +33,19 @@ async def create_study_room(room_data: room_schemas.StudyRoomCreate, current_use
 
 
 @router.get("/{room_id}", summary="Get details of a study room")
-async def get_study_room(room_id: UUID, session: SessionDep) -> room_schemas.StudyRoomBase:
+async def get_study_room(
+    room_id: UUID, session: SessionDep
+) -> room_schemas.StudyRoomBase:
     """Retrieve details of a study room by its ID."""
-    room = session.query(room_models.StudyRoom).filter(
-        room_models.StudyRoom.id == room_id).first()
+    room = (
+        session.query(room_models.StudyRoom)
+        .filter(room_models.StudyRoom.id == room_id)
+        .first()
+    )
     if not room:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found"
+        )
     return room
 
 
@@ -46,30 +58,44 @@ async def list_study_rooms(session: SessionDep) -> list[room_schemas.StudyRoomBa
 
 
 @router.delete("/{room_id}", summary="Delete a study room")
-async def delete_study_room(room_id: UUID, current_user: CurrentUser, session: SessionDep):
+async def delete_study_room(
+    room_id: UUID, current_user: CurrentUser, session: SessionDep
+):
     """Delete a study room by its ID. Only the owner of the room can delete it."""
-    room = session.query(room_models.StudyRoom).filter(
-        room_models.StudyRoom.id == room_id).first()
+    room = (
+        session.query(room_models.StudyRoom)
+        .filter(room_models.StudyRoom.id == room_id)
+        .first()
+    )
     if not room:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found"
+        )
     if room.created_by != current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Only the owner can delete this study room")
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the owner can delete this study room",
+        )
     session.delete(room)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{room_id}/join", summary="Join a study room")
-async def join_study_room(room_id: UUID, current_user: CurrentUser, session: SessionDep):
+async def join_study_room(
+    room_id: UUID, current_user: CurrentUser, session: SessionDep
+):
     """Join a study room by its ID. The user will be added to the members list of the room."""
-    room = session.query(room_models.StudyRoom).filter(
-        room_models.StudyRoom.id == room_id).first()
+    room = (
+        session.query(room_models.StudyRoom)
+        .filter(room_models.StudyRoom.id == room_id)
+        .first()
+    )
 
     if not room:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found"
+        )
 
     member_count = (
         session.query(func.count(room_models.StudyRoomMember.id))
@@ -79,7 +105,8 @@ async def join_study_room(room_id: UUID, current_user: CurrentUser, session: Ses
 
     if member_count >= room.max_members:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Study room is full")
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Study room is full"
+        )
 
     existing_member = (
         session.query(room_models.StudyRoomMember)
@@ -88,7 +115,9 @@ async def join_study_room(room_id: UUID, current_user: CurrentUser, session: Ses
     )
     if existing_member:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="You are already a member of this study room")
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are already a member of this study room",
+        )
 
     new_member = room_models.StudyRoomMember(user_id=current_user.id)
 
@@ -99,13 +128,19 @@ async def join_study_room(room_id: UUID, current_user: CurrentUser, session: Ses
 
 
 @router.post("/{room_id}/leave", summary="Leave a study room")
-async def leave_study_room(room_id: UUID, current_user: CurrentUser, session: SessionDep):
+async def leave_study_room(
+    room_id: UUID, current_user: CurrentUser, session: SessionDep
+):
     """Leave a study room by its ID. The user will be removed from the members list of the room."""
-    room = session.query(room_models.StudyRoom).filter(
-        room_models.StudyRoom.id == room_id).first()
+    room = (
+        session.query(room_models.StudyRoom)
+        .filter(room_models.StudyRoom.id == room_id)
+        .first()
+    )
     if not room:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found"
+        )
     member = (
         session.query(room_models.StudyRoomMember)
         .filter_by(study_room_id=room_id, user_id=current_user.id)
@@ -113,10 +148,47 @@ async def leave_study_room(room_id: UUID, current_user: CurrentUser, session: Se
     )
     if not member:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="You are not a member of this study room")
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are not a member of this study room",
+        )
     if room.created_by == current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Owner cannot leave their own study room. Consider deleting the room instead.")
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Owner cannot leave their own study room. Consider deleting the room instead.",
+        )
     session.delete(member)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/{room_id}/reports",
+    summary="List reports for a study room",
+    response_model=list[study_material_schemas.StudyMaterialReportResponse],
+)
+async def list_room_reports(
+    current_user: CurrentUser, session: SessionDep, room_id: UUID
+) -> list[study_material_schemas.StudyMaterialReportResponse]:
+    """List all reports for a specific study room, Only room owners can view reports for their rooms."""
+
+    # TODO - Add pagination for reports
+
+    room = (
+        session.query(room_models.StudyRoom)
+        .filter(room_models.StudyRoom.id == room_id)
+        .first()
+    )
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Study room not found"
+        )
+
+    if room.created_by != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the owner can view reports for this study room",
+        )
+
+    reports = session.query(study_material_models.StudyMaterialReport).join(
+        study_material_models.StudyMaterialReport.material).filter(study_material_models.StudyMaterial.room_id == room_id).all()
+    return reports
